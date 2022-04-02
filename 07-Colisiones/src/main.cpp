@@ -766,8 +766,10 @@ void mouseCallback(GLFWwindow *window, double xpos, double ypos) {
 }
 
 void scrollCallback(GLFWwindow* window, double xoffset, double yoffset){
-	distanceFromTarget -= yoffset;
-	camera->setDistanceFromTarget(distanceFromTarget);
+	if (distanceFromTarget - yoffset > 0) {
+		distanceFromTarget -= yoffset;
+		camera->setDistanceFromTarget(distanceFromTarget);
+	}
 }
 
 void mouseButtonCallback(GLFWwindow *window, int button, int state, int mod) {
