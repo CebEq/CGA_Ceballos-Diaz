@@ -1020,7 +1020,7 @@ void applicationLoop() {
 				angleTarget = glm::angle(glm::quat_cast(modelMatrixEnderman));
 				target = modelMatrixEnderman[3];
 			}
-			else (modelSelected == 2) {
+			else {
 				axis = glm::axis(glm::quat_cast(modelMatrixMayow));
 				angleTarget = glm::angle(glm::quat_cast(modelMatrixMayow));
 				target = modelMatrixMayow[3];
