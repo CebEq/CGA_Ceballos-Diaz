@@ -54,7 +54,11 @@ Shader shaderMulLighting;
 //Shader para el terreno
 Shader shaderTerrain;
 
-std::shared_ptr<FirstPersonCamera> camera(new FirstPersonCamera());
+std::shared_ptr<FirstPersonCamera> cameraFP(new FirstPersonCamera());
+std::shared_ptr<Camera> cameraTP(new ThirdPersonCamera());
+float distanceFromTarget = 7.0f;
+float cameraView = true;
+bool enableCameraSwitch = true;
 
 Sphere skyboxSphere(20, 20);
 
@@ -64,8 +68,8 @@ Model modelAircraft;
 Model modelHeliChasis;
 Model modelHeliHeli;
 Model modelLambo;
-Model modelLamboLeftDor;
-Model modelLamboRightDor;
+Model modelLamboLeftDoor;
+Model modelLamboRightDoor;
 Model modelLamboFrontLeftWheel;
 Model modelLamboFrontRightWheel;
 Model modelLamboRearLeftWheel;
@@ -87,6 +91,8 @@ Model modelLampPost2;
 // Model animate instance
 // Mayow
 Model mayowModelAnimate;
+// Enderman
+Model endermanModelAnimate;
 // Terrain model instance
 Terrain terrain(-1, -1, 200, 8, "../Textures/heightmap.png");
 
@@ -120,6 +126,7 @@ glm::mat4 modelMatrixLambo = glm::mat4(1.0);
 glm::mat4 modelMatrixAircraft = glm::mat4(1.0);
 glm::mat4 modelMatrixDart = glm::mat4(1.0f);
 glm::mat4 modelMatrixMayow = glm::mat4(1.0f);
+glm::mat4 modelMatrixEnderman = glm::mat4(1.0f);
 
 float rotDartHead = 0.0, rotDartLeftArm = 0.0, rotDartLeftHand = 0.0, rotDartRightArm = 0.0, rotDartRightHand = 0.0, rotDartLeftLeg = 0.0, rotDartRightLeg = 0.0;
 int modelSelected = 2;
@@ -148,9 +155,9 @@ int numPasosDart = 0;
 // Var animate helicopter
 float rotHelHelY = 0.0;
 
-// Var animate lambo dor
+// Var animate lambo door
 int stateDoor = 0;
-float dorRotCount = 0.0;
+float doorRotCount = 0.0;
 
 // Lamps positions
 std::vector<glm::vec3> lamp1Position = { glm::vec3(-7.03, 0, -19.14), glm::vec3(
@@ -212,6 +219,7 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	glfwSetCursorPosCallback(window, mouseCallback);
 	glfwSetMouseButtonCallback(window, mouseButtonCallback);
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
+	glfwSetScrollCallback(window, scrollCallback);
 
 	// Init glew
 	glewExperimental = GL_TRUE;
@@ -256,10 +264,10 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	// Lamborginhi
 	modelLambo.loadModel("../models/Lamborginhi_Aventador_OBJ/Lamborghini_Aventador_chasis.obj");
 	modelLambo.setShader(&shaderMulLighting);
-	modelLamboLeftDor.loadModel("../models/Lamborginhi_Aventador_OBJ/Lamborghini_Aventador_left_dor.obj");
-	modelLamboLeftDor.setShader(&shaderMulLighting);
-	modelLamboRightDor.loadModel("../models/Lamborginhi_Aventador_OBJ/Lamborghini_Aventador_right_dor.obj");
-	modelLamboRightDor.setShader(&shaderMulLighting);
+	modelLamboLeftDoor.loadModel("../models/Lamborginhi_Aventador_OBJ/Lamborghini_Aventador_left_dor.obj");
+	modelLamboLeftDoor.setShader(&shaderMulLighting);
+	modelLamboRightDoor.loadModel("../models/Lamborginhi_Aventador_OBJ/Lamborghini_Aventador_right_dor.obj");
+	modelLamboRightDoor.setShader(&shaderMulLighting);
 	modelLamboFrontLeftWheel.loadModel("../models/Lamborginhi_Aventador_OBJ/Lamborghini_Aventador_front_left_wheel.obj");
 	modelLamboFrontLeftWheel.setShader(&shaderMulLighting);
 	modelLamboFrontRightWheel.loadModel("../models/Lamborginhi_Aventador_OBJ/Lamborghini_Aventador_front_right_wheel.obj");
@@ -301,7 +309,23 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	mayowModelAnimate.loadModel("../models/mayow/personaje2.fbx");
 	mayowModelAnimate.setShader(&shaderMulLighting);
 
-	camera->setPosition(glm::vec3(0.0, 0.0, 10.0));
+	//Enderman
+	endermanModelAnimate.loadModel("../models/Enderman/Enderman2.fbx");
+	endermanModelAnimate.setShader(&shaderMulLighting);
+
+	/*// No es necesario colocarle posición, los cálculos se hacen durante la ejecución
+	cameraTP->setPosition(glm::vec3(0.0, 0.0, 10.0));
+	cameraTP->setDistanceFromTarget(distanceFromTarget);
+	cameraTP->setSensitivity(1.0);*/
+
+	if (cameraView) {
+		cameraFP->setPosition(glm::vec3(0.0, 0.0, 10.0));
+	}
+	else {
+		cameraTP->setPosition(glm::vec3(0.0, 0.0, 10.0));
+		cameraTP->setDistanceFromTarget(distanceFromTarget);
+		cameraTP->setSensitivity(1.0);
+	}
 
 	// Definimos el tamanio de la imagen
 	int imageWidth, imageHeight;
@@ -687,10 +711,10 @@ void destroy() {
 	modelLambo.destroy();
 	modelLamboFrontLeftWheel.destroy();
 	modelLamboFrontRightWheel.destroy();
-	modelLamboLeftDor.destroy();
+	modelLamboLeftDoor.destroy();
 	modelLamboRearLeftWheel.destroy();
 	modelLamboRearRightWheel.destroy();
-	modelLamboRightDor.destroy();
+	modelLamboRightDoor.destroy();
 	modelRock.destroy();
 	modelLamp1.destroy();
 	modelLamp2.destroy();
@@ -698,6 +722,7 @@ void destroy() {
 
 	// Custom objects animate
 	mayowModelAnimate.destroy();
+	endermanModelAnimate.destroy();
 
 	// Textures Delete
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -758,12 +783,47 @@ void mouseButtonCallback(GLFWwindow *window, int button, int state, int mod) {
 	}
 }
 
+void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+	if (distanceFromTarget - yoffset > 0) {
+		distanceFromTarget -= yoffset;
+		cameraTP->setDistanceFromTarget(distanceFromTarget);
+	}
+}
+
 bool processInput(bool continueApplication) {
 	if (exitApp || glfwWindowShouldClose(window) != 0) {
 		return false;
 	}
 
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+	if (enableCameraSwitch && glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS) {
+		enableCameraSwitch = false;
+		cameraView = !cameraView;
+	}
+	else if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_RELEASE && glfwGetKey(window, GLFW_KEY_K) == GLFW_RELEASE)
+		enableCameraSwitch = true;
+
+	if (cameraView) {
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+			cameraFP->moveFrontCamera(true, deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+			cameraFP->moveFrontCamera(false, deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+			cameraFP->moveRightCamera(false, deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+			cameraFP->moveRightCamera(true, deltaTime);
+		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+			cameraFP->mouseMoveCamera(offsetX, offsetY, deltaTime);
+	}
+	else {
+		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+			cameraTP->mouseMoveCamera(offsetX, 0.0, deltaTime);
+		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+			cameraTP->mouseMoveCamera(0.0, offsetY, deltaTime);
+	}
+	offsetX = 0;
+	offsetY = 0;
+
+	/*if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 		camera->moveFrontCamera(true, deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
 		camera->moveFrontCamera(false, deltaTime);
@@ -772,15 +832,13 @@ bool processInput(bool continueApplication) {
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		camera->moveRightCamera(true, deltaTime);
 	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-		camera->mouseMoveCamera(offsetX, offsetY, deltaTime);
-	offsetX = 0;
-	offsetY = 0;
+		camera->mouseMoveCamera(offsetX, offsetY, deltaTime);*/
 
 	// Seleccionar modelo
 	if (enableCountSelected && glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS){
 		enableCountSelected = false;
 		modelSelected++;
-		if(modelSelected > 2)
+		if(modelSelected > 3)
 			modelSelected = 0;
 		if(modelSelected == 1)
 			fileName = "../animaciones/animation_dart_joints.txt";
@@ -877,12 +935,35 @@ bool processInput(bool continueApplication) {
 		modelMatrixMayow = glm::translate(modelMatrixMayow, glm::vec3(0, 0, -0.02));
 	}
 
+	// Enderman animated model movements
+	if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+		modelMatrixEnderman = glm::translate(modelMatrixEnderman, glm::vec3(0.0, 0.0, 0.03));
+		endermanModelAnimate.setAnimationIndex(1);
+	}
+	else if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+		modelMatrixEnderman = glm::translate(modelMatrixEnderman, glm::vec3(0.0, 0.0, -0.03));
+		endermanModelAnimate.setAnimationIndex(1);
+	}
+	if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
+		modelMatrixEnderman = glm::rotate(modelMatrixEnderman, 0.03f, glm::vec3(0, 1, 0));
+		endermanModelAnimate.setAnimationIndex(1);
+	}
+	else if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
+		modelMatrixEnderman = glm::rotate(modelMatrixEnderman, -0.03f, glm::vec3(0, 1, 0));
+		endermanModelAnimate.setAnimationIndex(1);
+	}
+
 	glfwPollEvents();
 	return continueApplication;
 }
 
 void applicationLoop() {
 	bool psi = true;
+
+	glm::mat4 view;
+	glm::vec3 axis;
+	glm::vec3 target;
+	float angleTarget;
 
 	matrixModelRock = glm::translate(matrixModelRock, glm::vec3(-3.0, 0.0, 2.0));
 
@@ -896,6 +977,8 @@ void applicationLoop() {
 
 	modelMatrixMayow = glm::translate(modelMatrixMayow, glm::vec3(13.0f, 0.05f, -5.0f));
 	modelMatrixMayow = glm::rotate(modelMatrixMayow, glm::radians(-90.0f), glm::vec3(0, 1, 0));
+
+	modelMatrixEnderman = glm::translate(modelMatrixEnderman, glm::vec3(0.0, 0.0, 2.9));
 
 	// Variables to interpolation key frames
 	fileName = "../animaciones/animation_dart_joints.txt";
@@ -922,7 +1005,41 @@ void applicationLoop() {
 
 		glm::mat4 projection = glm::perspective(glm::radians(45.0f),
 				(float) screenWidth / (float) screenHeight, 0.01f, 100.0f);
-		glm::mat4 view = camera->getViewMatrix();
+
+		if (cameraView) {
+			view = cameraFP->getViewMatrix();
+		}
+		else {
+			if (modelSelected == 1) {
+				axis = glm::axis(glm::quat_cast(modelMatrixDart));
+				angleTarget = glm::angle(glm::quat_cast(modelMatrixDart));
+				target = modelMatrixDart[3];
+			}
+			else if (modelSelected == 3) {
+				axis = glm::axis(glm::quat_cast(modelMatrixEnderman));
+				angleTarget = glm::angle(glm::quat_cast(modelMatrixEnderman));
+				target = modelMatrixEnderman[3];
+			}
+			else {
+				axis = glm::axis(glm::quat_cast(modelMatrixMayow));
+				angleTarget = glm::angle(glm::quat_cast(modelMatrixMayow));
+				target = modelMatrixMayow[3];
+			}
+
+			if (modelSelected == 1) {
+				angleTarget -= glm::radians(90.0);
+			}
+
+			if (std::isnan(angleTarget))
+				angleTarget = 0.0;
+			if (axis.y < 0)
+				angleTarget = -angleTarget;
+			cameraTP->setCameraTarget(target);
+			cameraTP->setAngleTarget(angleTarget);
+			cameraTP->updateCamera();
+			view = cameraTP->getViewMatrix();
+		}
+				
 
 		// Settea la matriz de vista y projection al shader con solo color
 		shader.setMatrix4("projection", 1, false, glm::value_ptr(projection));
@@ -947,7 +1064,12 @@ void applicationLoop() {
 		/*******************************************
 		 * Propiedades Luz direccional
 		 *******************************************/
-		shaderMulLighting.setVectorFloat3("viewPos", glm::value_ptr(camera->getPosition()));
+		if (cameraView) {
+			shaderMulLighting.setVectorFloat3("viewPos", glm::value_ptr(cameraFP->getPosition()));
+		}
+		else {
+			shaderMulLighting.setVectorFloat3("viewPos", glm::value_ptr(cameraTP->getPosition()));
+		}
 		shaderMulLighting.setVectorFloat3("directionalLight.light.ambient", glm::value_ptr(glm::vec3(0.05, 0.05, 0.05)));
 		shaderMulLighting.setVectorFloat3("directionalLight.light.diffuse", glm::value_ptr(glm::vec3(0.3, 0.3, 0.3)));
 		shaderMulLighting.setVectorFloat3("directionalLight.light.specular", glm::value_ptr(glm::vec3(0.4, 0.4, 0.4)));
@@ -956,7 +1078,12 @@ void applicationLoop() {
 		/*******************************************
 		 * Propiedades Luz direccional Terrain
 		 *******************************************/
-		shaderTerrain.setVectorFloat3("viewPos", glm::value_ptr(camera->getPosition()));
+		if (cameraView) {
+			shaderTerrain.setVectorFloat3("viewPos", glm::value_ptr(cameraFP->getPosition()));
+		}
+		else {
+			shaderTerrain.setVectorFloat3("viewPos", glm::value_ptr(cameraTP->getPosition()));
+		}
 		shaderTerrain.setVectorFloat3("directionalLight.light.ambient", glm::value_ptr(glm::vec3(0.05, 0.05, 0.05)));
 		shaderTerrain.setVectorFloat3("directionalLight.light.diffuse", glm::value_ptr(glm::vec3(0.3, 0.3, 0.3)));
 		shaderTerrain.setVectorFloat3("directionalLight.light.specular", glm::value_ptr(glm::vec3(0.4, 0.4, 0.4)));
@@ -1092,12 +1219,12 @@ void applicationLoop() {
 		modelMatrixLamboChasis = glm::scale(modelMatrixLamboChasis, glm::vec3(1.3, 1.3, 1.3));
 		modelLambo.render(modelMatrixLamboChasis);
 		glActiveTexture(GL_TEXTURE0);
-		glm::mat4 modelMatrixLamboLeftDor = glm::mat4(modelMatrixLamboChasis);
-		modelMatrixLamboLeftDor = glm::translate(modelMatrixLamboLeftDor, glm::vec3(1.08676, 0.707316, 0.982601));
-		modelMatrixLamboLeftDor = glm::rotate(modelMatrixLamboLeftDor, glm::radians(dorRotCount), glm::vec3(1.0, 0, 0));
-		modelMatrixLamboLeftDor = glm::translate(modelMatrixLamboLeftDor, glm::vec3(-1.08676, -0.707316, -0.982601));
-		modelLamboLeftDor.render(modelMatrixLamboLeftDor);
-		modelLamboRightDor.render(modelMatrixLamboChasis);
+		glm::mat4 modelMatrixLamboLeftDoor = glm::mat4(modelMatrixLamboChasis);
+		modelMatrixLamboLeftDoor = glm::translate(modelMatrixLamboLeftDoor, glm::vec3(1.08676, 0.707316, 0.982601));
+		modelMatrixLamboLeftDoor = glm::rotate(modelMatrixLamboLeftDoor, glm::radians(doorRotCount), glm::vec3(1.0, 0, 0));
+		modelMatrixLamboLeftDoor = glm::translate(modelMatrixLamboLeftDoor, glm::vec3(-1.08676, -0.707316, -0.982601));
+		modelLamboLeftDoor.render(modelMatrixLamboLeftDoor);
+		modelLamboRightDoor.render(modelMatrixLamboChasis);
 		modelLamboFrontLeftWheel.render(modelMatrixLamboChasis);
 		modelLamboFrontRightWheel.render(modelMatrixLamboChasis);
 		modelLamboRearLeftWheel.render(modelMatrixLamboChasis);
@@ -1186,6 +1313,19 @@ void applicationLoop() {
 		modelMatrixMayowBody = glm::scale(modelMatrixMayowBody, glm::vec3(0.021, 0.021, 0.021));
 		mayowModelAnimate.render(modelMatrixMayowBody);
 
+		glm::vec3 ejeyE = glm::normalize(terrain.getNormalTerrain(modelMatrixEnderman[3][0], modelMatrixEnderman[3][2]));
+		glm::vec3 ejexE = glm::normalize(modelMatrixEnderman[0]);
+		glm::vec3 ejezE = glm::normalize(glm::cross(ejexE, ejeyE));
+		ejexE = glm::normalize(glm::cross(ejeyE, ejezE));
+		modelMatrixEnderman[0] = glm::vec4(ejexE, 0.0);
+		modelMatrixEnderman[1] = glm::vec4(ejeyE, 0.0);
+		modelMatrixEnderman[2] = glm::vec4(ejezE, 0.0);
+		modelMatrixEnderman[3][1] = terrain.getHeightTerrain(modelMatrixEnderman[3][0], modelMatrixEnderman[3][2]);
+		glm::mat4 modelMatrixEndermanBody = glm::mat4(modelMatrixEnderman);
+		modelMatrixEndermanBody = glm::scale(modelMatrixEndermanBody, glm::vec3(0.0021, 0.0021, 0.0021));
+		endermanModelAnimate.render(modelMatrixEndermanBody);
+		endermanModelAnimate.setAnimationIndex(0);
+
 		/*******************************************
 		 * Skybox
 		 *******************************************/
@@ -1269,14 +1409,14 @@ void applicationLoop() {
 		// State machine for the lambo car
 		switch(stateDoor){
 		case 0:
-			dorRotCount += 0.5;
-			if(dorRotCount > 75)
+			doorRotCount += 0.5;
+			if(doorRotCount > 75)
 				stateDoor = 1;
 			break;
 		case 1:
-			dorRotCount -= 0.5;
-			if(dorRotCount < 0){
-				dorRotCount = 0.0;
+			doorRotCount -= 0.5;
+			if(doorRotCount < 0){
+				doorRotCount = 0.0;
 				stateDoor = 0;
 			}
 			break;
