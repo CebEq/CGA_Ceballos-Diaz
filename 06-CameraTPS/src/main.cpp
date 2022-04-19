@@ -54,10 +54,7 @@ Shader shaderMulLighting;
 //Shader para el terreno
 Shader shaderTerrain;
 
-std::shared_ptr<FirstPersonCamera> camera1(new FirstPersonCamera());
-std::shared_ptr<Camera> camera2(new ThirdPersonCamera());
-float distanceFromTarget = 7.0;
-bool cameraView = true;
+std::shared_ptr<FirstPersonCamera> camera(new FirstPersonCamera());
 
 Sphere skyboxSphere(20, 20);
 
@@ -91,10 +88,6 @@ Model modelLampPost2;
 // Mayow
 Model mayowModelAnimate;
 // Terrain model instance
-
-//Enderman
-Model endermanModelAnimate;
-
 Terrain terrain(-1, -1, 200, 8, "../Textures/heightmap.png");
 
 GLuint textureCespedID, textureWallID, textureWindowID, textureHighwayID, textureLandingPadID;
@@ -127,7 +120,6 @@ glm::mat4 modelMatrixLambo = glm::mat4(1.0);
 glm::mat4 modelMatrixAircraft = glm::mat4(1.0);
 glm::mat4 modelMatrixDart = glm::mat4(1.0f);
 glm::mat4 modelMatrixMayow = glm::mat4(1.0f);
-glm::mat4 modelMatrixEnderman = glm::mat4(1.0f);
 
 float rotDartHead = 0.0, rotDartLeftArm = 0.0, rotDartLeftHand = 0.0, rotDartRightArm = 0.0, rotDartRightHand = 0.0, rotDartLeftLeg = 0.0, rotDartRightLeg = 0.0;
 int modelSelected = 2;
@@ -220,7 +212,6 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	glfwSetCursorPosCallback(window, mouseCallback);
 	glfwSetMouseButtonCallback(window, mouseButtonCallback);
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
-	glfwSetScrollCallback(window, scrollCallback);
 
 	// Init glew
 	glewExperimental = GL_TRUE;
@@ -310,19 +301,7 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	mayowModelAnimate.loadModel("../models/mayow/personaje2.fbx");
 	mayowModelAnimate.setShader(&shaderMulLighting);
 
-	//Enderman
-	endermanModelAnimate.loadModel("../models/Enderman/Enderman2.fbx");
-	endermanModelAnimate.setShader(&shaderMulLighting);
-
-
-	if (true) {
-		camera1->setPosition(glm::vec3(0.0, 0.0, 10.0));
-	}
-	else {
-		camera2->setPosition(glm::vec3(0.0, 0.0, 10.0));
-		camera2->setDistanceFromTarget(distanceFromTarget);
-		camera2->setSensitivity(1.0);
-	}
+	camera->setPosition(glm::vec3(0.0, 0.0, 10.0));
 
 	// Definimos el tamanio de la imagen
 	int imageWidth, imageHeight;
@@ -719,7 +698,6 @@ void destroy() {
 
 	// Custom objects animate
 	mayowModelAnimate.destroy();
-	endermanModelAnimate.destroy();
 
 	// Textures Delete
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -780,36 +758,21 @@ void mouseButtonCallback(GLFWwindow *window, int button, int state, int mod) {
 	}
 }
 
-void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
-	if (distanceFromTarget - yoffset > 0) {
-		distanceFromTarget -= yoffset;
-		camera2->setDistanceFromTarget(distanceFromTarget);
-	}
-}
-
 bool processInput(bool continueApplication) {
 	if (exitApp || glfwWindowShouldClose(window) != 0) {
 		return false;
 	}
 
-	if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS) {
-		cameraView = !cameraView;
-	}
-
-	if (cameraView) {
-		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-			camera1->moveFrontCamera(true, deltaTime);
-		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-			camera1->moveFrontCamera(false, deltaTime);
-		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-			camera1->moveRightCamera(false, deltaTime);
-		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-			camera1->moveRightCamera(true, deltaTime);
-	}
-	else {
-		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-			camera2->mouseMoveCamera(offsetX, offsetY, deltaTime);
-	}
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		camera->moveFrontCamera(true, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		camera->moveFrontCamera(false, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		camera->moveRightCamera(false, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		camera->moveRightCamera(true, deltaTime);
+	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+		camera->mouseMoveCamera(offsetX, offsetY, deltaTime);
 	offsetX = 0;
 	offsetY = 0;
 
@@ -817,7 +780,7 @@ bool processInput(bool continueApplication) {
 	if (enableCountSelected && glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS){
 		enableCountSelected = false;
 		modelSelected++;
-		if(modelSelected > 3)
+		if(modelSelected > 2)
 			modelSelected = 0;
 		if(modelSelected == 1)
 			fileName = "../animaciones/animation_dart_joints.txt";
@@ -913,33 +876,13 @@ bool processInput(bool continueApplication) {
 	}else if (modelSelected == 2 && glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS){
 		modelMatrixMayow = glm::translate(modelMatrixMayow, glm::vec3(0, 0, -0.02));
 	}
-	if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-		modelMatrixEnderman = glm::translate(modelMatrixEnderman, glm::vec3(0.0, 0.0, 0.03));
-		endermanModelAnimate.setAnimationIndex(1);
-	}
-	else if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-		modelMatrixEnderman = glm::translate(modelMatrixEnderman, glm::vec3(0.0, 0.0, -0.03));
-		endermanModelAnimate.setAnimationIndex(1);
-	}
-	if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-		modelMatrixEnderman = glm::rotate(modelMatrixEnderman, 0.03f, glm::vec3(0, 1, 0));
-		endermanModelAnimate.setAnimationIndex(1);
-	}
-	else if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
-		modelMatrixEnderman = glm::rotate(modelMatrixEnderman, -0.03f, glm::vec3(0, 1, 0));
-		endermanModelAnimate.setAnimationIndex(1);
-	}
+
 	glfwPollEvents();
 	return continueApplication;
 }
 
 void applicationLoop() {
 	bool psi = true;
-
-	glm::mat4 view;
-	glm::vec3 axis;
-	glm::vec3 target;
-	float angleTarget;
 
 	matrixModelRock = glm::translate(matrixModelRock, glm::vec3(-3.0, 0.0, 2.0));
 
@@ -953,8 +896,6 @@ void applicationLoop() {
 
 	modelMatrixMayow = glm::translate(modelMatrixMayow, glm::vec3(13.0f, 0.05f, -5.0f));
 	modelMatrixMayow = glm::rotate(modelMatrixMayow, glm::radians(-90.0f), glm::vec3(0, 1, 0));
-
-	modelMatrixEnderman = glm::translate(modelMatrixEnderman, glm::vec3(0.0, 0.0, 2.9));
 
 	// Variables to interpolation key frames
 	fileName = "../animaciones/animation_dart_joints.txt";
@@ -981,35 +922,7 @@ void applicationLoop() {
 
 		glm::mat4 projection = glm::perspective(glm::radians(45.0f),
 				(float) screenWidth / (float) screenHeight, 0.01f, 100.0f);
-		
-		if (cameraView) {
-			glm::mat4 view = camera1->getViewMatrix();
-		}
-		else
-		{
-			if (modelSelected == 3) {
-				axis = glm::axis(glm::quat_cast(modelMatrixEnderman));
-				angleTarget = glm::angle(glm::quat_cast(modelMatrixEnderman));
-				target = modelMatrixEnderman[3];
-			}
-			else {
-				axis = glm::axis(glm::quat_cast(modelMatrixMayow));
-				angleTarget = glm::angle(glm::quat_cast(modelMatrixMayow));
-				target = modelMatrixMayow[3];
-			}
-
-			if (std::isnan(angleTarget))
-				angleTarget = 0.0;
-			if (axis.y < 0)
-				angleTarget = -angleTarget;
-			if (modelSelected == 3)
-				angleTarget -= glm::radians(90.0f);
-			camera2->setCameraTarget(target);
-			camera2->setAngleTarget(angleTarget);
-			camera2->updateCamera();
-			view = camera2->getViewMatrix();
-		}
-		
+		glm::mat4 view = camera->getViewMatrix();
 
 		// Settea la matriz de vista y projection al shader con solo color
 		shader.setMatrix4("projection", 1, false, glm::value_ptr(projection));
@@ -1034,26 +947,16 @@ void applicationLoop() {
 		/*******************************************
 		 * Propiedades Luz direccional
 		 *******************************************/
-		if (cameraView) {
-			shaderMulLighting.setVectorFloat3("viewPos", glm::value_ptr(camera1->getPosition()));
-		}
-		else {
-			shaderMulLighting.setVectorFloat3("viewPos", glm::value_ptr(camera2->getPosition()));
-		}
-		shaderMulLighting.setVectorFloat3("directionalLight.light.ambient", glm::value_ptr(glm::vec3(0.3, 0.3, 0.3)));
-		shaderMulLighting.setVectorFloat3("directionalLight.light.diffuse", glm::value_ptr(glm::vec3(0.7, 0.7, 0.7)));
-		shaderMulLighting.setVectorFloat3("directionalLight.light.specular", glm::value_ptr(glm::vec3(0.9, 0.9, 0.9)));
+		shaderMulLighting.setVectorFloat3("viewPos", glm::value_ptr(camera->getPosition()));
+		shaderMulLighting.setVectorFloat3("directionalLight.light.ambient", glm::value_ptr(glm::vec3(0.05, 0.05, 0.05)));
+		shaderMulLighting.setVectorFloat3("directionalLight.light.diffuse", glm::value_ptr(glm::vec3(0.3, 0.3, 0.3)));
+		shaderMulLighting.setVectorFloat3("directionalLight.light.specular", glm::value_ptr(glm::vec3(0.4, 0.4, 0.4)));
 		shaderMulLighting.setVectorFloat3("directionalLight.direction", glm::value_ptr(glm::vec3(-1.0, 0.0, 0.0)));
 
 		/*******************************************
 		 * Propiedades Luz direccional Terrain
 		 *******************************************/
-		if (cameraView) {
-			shaderTerrain.setVectorFloat3("viewPos", glm::value_ptr(camera1->getPosition()));
-		}
-		else {
-			shaderTerrain.setVectorFloat3("viewPos", glm::value_ptr(camera2->getPosition()));
-		}
+		shaderTerrain.setVectorFloat3("viewPos", glm::value_ptr(camera->getPosition()));
 		shaderTerrain.setVectorFloat3("directionalLight.light.ambient", glm::value_ptr(glm::vec3(0.05, 0.05, 0.05)));
 		shaderTerrain.setVectorFloat3("directionalLight.light.diffuse", glm::value_ptr(glm::vec3(0.3, 0.3, 0.3)));
 		shaderTerrain.setVectorFloat3("directionalLight.light.specular", glm::value_ptr(glm::vec3(0.4, 0.4, 0.4)));
@@ -1282,19 +1185,6 @@ void applicationLoop() {
 		glm::mat4 modelMatrixMayowBody = glm::mat4(modelMatrixMayow);
 		modelMatrixMayowBody = glm::scale(modelMatrixMayowBody, glm::vec3(0.021, 0.021, 0.021));
 		mayowModelAnimate.render(modelMatrixMayowBody);
-
-		glm::vec3 ejeyE = glm::normalize(terrain.getNormalTerrain(modelMatrixEnderman[3][0], modelMatrixEnderman[3][2]));
-		glm::vec3 ejexE = glm::normalize(modelMatrixEnderman[0]);
-		glm::vec3 ejezE = glm::normalize(glm::cross(ejexE, ejeyE));
-		ejexE = glm::normalize(glm::cross(ejeyE, ejezE));
-		modelMatrixEnderman[0] = glm::vec4(ejexE, 0.0);
-		modelMatrixEnderman[1] = glm::vec4(ejeyE, 0.0);
-		modelMatrixEnderman[2] = glm::vec4(ejezE, 0.0);
-		modelMatrixEnderman[3][1] = terrain.getHeightTerrain(modelMatrixEnderman[3][0], modelMatrixEnderman[3][2]);
-		glm::mat4 modelMatrixEndermanBody = glm::mat4(modelMatrixEnderman);
-		modelMatrixEndermanBody = glm::scale(modelMatrixEndermanBody, glm::vec3(0.0021, 0.0021, 0.0021));
-		endermanModelAnimate.render(modelMatrixEndermanBody);
-		endermanModelAnimate.setAnimationIndex(0);
 
 		/*******************************************
 		 * Skybox
