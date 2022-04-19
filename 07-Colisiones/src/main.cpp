@@ -1430,15 +1430,16 @@ void applicationLoop() {
 		addOrUpdateColliders(collidersOBB, "mayow", mayowCollider, modelMatrixMayow);
 
 		//Collider Enderman
-		/*AbstractModel::OBB enderCollider;
+		AbstractModel::OBB enderCollider;
 		glm::mat4 modelMatrixColliderEnder = glm::mat4(modelMatrixEnderman);
-		//modelMatrixColliderEnder = glm::rotate(modelMatrixColliderEnder, glm::radians(-90.0f), glm::vec3(0.0, 1, 0));
-		mayowCollider.u = glm::quat_cast(modelMatrixColliderEnder);
-		modelMatrixColliderEnder = glm::scale(modelMatrixColliderEnder, glm::vec3(0.00021, 0.00021, 0.00021));
+		modelMatrixColliderEnder = glm::rotate(modelMatrixColliderEnder, glm::radians(-90.0f), glm::vec3(1.0, 0, 0));
+		modelMatrixColliderEnder = glm::translate(modelMatrixColliderEnder, glm::vec3(0.0, 0.0, 1.325));
+		enderCollider.u = glm::quat_cast(modelMatrixColliderEnder);
+		modelMatrixColliderEnder = glm::scale(modelMatrixColliderEnder, glm::vec3(0.0021, 0.0021, 0.0021));
 		modelMatrixColliderEnder = glm::translate(modelMatrixColliderEnder, endermanModelAnimate.getObb().c);
 		enderCollider.c = glm::vec3(modelMatrixColliderEnder[3]);
-		enderCollider.e = endermanModelAnimate.getObb().e * glm::vec3(0.0021, 0.0021, 0.0021) * glm::vec3(0.08, 0.08, 0.08);
-		addOrUpdateColliders(collidersOBB, "ender", enderCollider, modelMatrixEnderman);*/
+		enderCollider.e = endermanModelAnimate.getObb().e * glm::vec3(0.0021, 0.0021, 0.0021) * glm::vec3(100.0, 100.0, 100.0);
+		addOrUpdateColliders(collidersOBB, "ender", enderCollider, modelMatrixEnderman);
 
 		// Collider de Tails
 		glm::mat4 modelMatrixColliderTails = glm::mat4(modelMatrixTails);
