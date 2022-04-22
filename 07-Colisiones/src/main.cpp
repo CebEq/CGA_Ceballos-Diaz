@@ -95,12 +95,14 @@ Model modelLampPost2;
 // Model animate instance
 // Mayow
 Model mayowModelAnimate;
-//Enderman
+// Enderman
 Model endermanModelAnimate;
-//Tails
+// Tails
 Model modelTailsFull;
-//Pelota
+// Pelota
 Model modelPelota;
+// Bullet
+Model modelBullet;
 
 // Terrain model instance
 Terrain terrain(-1, -1, 200, 8, "../Textures/heightmap.png");
@@ -138,6 +140,7 @@ glm::mat4 modelMatrixMayow = glm::mat4(1.0f);
 glm::mat4 modelMatrixEnderman = glm::mat4(1.0f);
 glm::mat4 modelMatrixTails = glm::mat4(1.0f);
 glm::mat4 modelMatrixPelota = glm::mat4(1.0f);
+glm::mat4 modelMatrixBullet = glm::mat4(1.0f);
 
 int animationIndex = 1;
 float rotDartHead = 0.0, rotDartLeftArm = 0.0, rotDartLeftHand = 0.0, rotDartRightArm = 0.0, rotDartRightHand = 0.0, rotDartLeftLeg = 0.0, rotDartRightLeg = 0.0;
@@ -349,9 +352,13 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	modelTailsFull.loadModel("../models/Tails/Tails.obj");
 	modelTailsFull.setShader(&shaderMulLighting);
 
-	//Tails
+	//Pelota
 	modelPelota.loadModel("../models/Pelota/Pelota.fbx");
 	modelPelota.setShader(&shaderMulLighting);
+
+	//Pelota
+	modelBullet.loadModel("../models/Bullet/Bullet.obj");
+	modelBullet.setShader(&shaderMulLighting);
 
 	camera->setPosition(glm::vec3(0.0, 0.0, 10.0));
 	camera->setDistanceFromTarget(distanceFromTarget);
@@ -753,6 +760,11 @@ void destroy() {
 	modelLamp1.destroy();
 	modelLamp2.destroy();
 	modelLampPost2.destroy();
+	modelLampPost2.destroy();
+	modelLampPost2.destroy();
+	modelLampPost2.destroy();
+	modelLampPost2.destroy();
+	modelBullet.destroy();
 
 	// Custom objects animate
 	mayowModelAnimate.destroy();
@@ -989,6 +1001,8 @@ void applicationLoop() {
 
 	modelMatrixPelota = glm::translate(modelMatrixPelota, glm::vec3(5, 2, -9.0));
 
+	modelMatrixBullet = glm::translate(modelMatrixBullet, glm::vec3(0.0, 2.0, 2.9));
+
 	// Variables to interpolation key frames
 	fileName = "../animaciones/animation_dart_joints.txt";
 	keyFramesDartJoints = getKeyRotFrames(fileName);
@@ -1208,6 +1222,10 @@ void applicationLoop() {
 		modelMatrixPelotaBody = glm::scale(modelMatrixPelotaBody, glm::vec3(0.05,0.05,0.05));
 		modelPelota.render(modelMatrixPelotaBody);
 
+		// Bullet
+		glm::mat4 modelMatrixBulletMain = glm::mat4(modelMatrixBullet);
+		modelBullet.render(modelMatrixBullet);
+
 		// Helicopter
 		glm::mat4 modelMatrixHeliChasis = glm::mat4(modelMatrixHeli);
 		modelHeliChasis.render(modelMatrixHeliChasis);
@@ -1353,8 +1371,8 @@ void applicationLoop() {
 		cylinder.render(modelMatrixRay);
 
 		//Rayo de ender
-		/*glm::mat4 modelMatrixRayE = glm::mat4(modelMatrixEnderman);
-		modelMatrixRayE = glm::translate(modelMatrixRayE, glm::vec3(0, 1, 0));
+		glm::mat4 modelMatrixRayE = glm::mat4(modelMatrixEnderman);
+		modelMatrixRayE = glm::translate(modelMatrixRayE, glm::vec3(0, 2, 0));
 		glm::vec3 rayDirectionE = glm::normalize(glm::vec3(modelMatrixRayE[2]));
 		glm::vec3 oriE = glm::vec3(modelMatrixRayE[3]);
 		glm::vec3 tarE = oriE + 1.0f * rayDirectionE;
@@ -1362,7 +1380,7 @@ void applicationLoop() {
 		modelMatrixRayE[3] = glm::vec4(dmdE, 1.0f);
 		modelMatrixRayE = glm::rotate(modelMatrixRayE, glm::radians(90.0f), glm::vec3(1.0, 0, 0));
 		modelMatrixRayE = glm::scale(modelMatrixRayE, glm::vec3(1.0, 1.0, 1.0));
-		cylinderE.render(modelMatrixRayE);*/
+		cylinderE.render(modelMatrixRayE);
 
 		/*******************************************
 		 * Skybox
@@ -1461,6 +1479,17 @@ void applicationLoop() {
 		pelotaCollider.ratio = modelPelota.getSbb().ratio * 0.03;
 		addOrUpdateColliders(collidersSBB, "pelota", pelotaCollider, modelMatrixPelota);
 
+		// Collider Bullet
+		glm::mat4 modelMatrixColliderBullet = glm::mat4(modelMatrixBullet);
+		AbstractModel::OBB bulletCollider;
+		// Set the orientation of collider before doing the scale
+		bulletCollider.u = glm::quat_cast(modelMatrixBullet);
+		modelMatrixColliderBullet = glm::scale(modelMatrixColliderBullet, glm::vec3(1.0, 1.0, 1.0));
+		modelMatrixColliderBullet = glm::translate(modelMatrixColliderBullet, glm::vec3(modelBullet.getObb().c.x, modelBullet.getObb().c.y, modelBullet.getObb().c.z));
+		bulletCollider.c = glm::vec3(modelMatrixColliderBullet[3]);
+		bulletCollider.e = modelBullet.getObb().e * glm::vec3(1, 1, 1);
+		addOrUpdateColliders(collidersOBB, "bullet", bulletCollider, modelMatrixColliderBullet);
+
 		//****************************************************************************************
 		//*                                 Test Colisiones                                      *
 		//****************************************************************************************
@@ -1537,23 +1566,23 @@ void applicationLoop() {
 
 		//Ray vs Box
 		for (std::map<std::string, std::tuple<AbstractModel::OBB, glm::mat4, glm::mat4>>::iterator it = collidersOBB.begin(); it != collidersOBB.end(); it++) {
-			if (intersectRayOBB(ori, tar, rayDirection, std::get<0>(it->second))) {
+			if (intersectRayOBB(ori, tar, rayDirection, std::get<0>(it -> second))) {
 				std::cout << "Colision " << it->first << " con el rayo" << std::endl;
 			}
 		}
 
-		/*for (std::map<std::string, std::tuple<AbstractModel::SBB, glm::mat4, glm::mat4>>::iterator it = collidersSBB.begin(); it != collidersSBB.end(); it++) {
+		for (std::map<std::string, std::tuple<AbstractModel::SBB, glm::mat4, glm::mat4>>::iterator it = collidersSBB.begin(); it != collidersSBB.end(); it++) {
 			float trayE;
-			if (raySphereIntersect(oriE, tarE, rayDirectionE, std::get<0>(it->second), trayE)) {
+			if (raySphereIntersect(oriE, tarE, rayDirectionE, std::get<0>(it -> second), trayE)) {
 				std::cout << "Colision " << it->first << " con el rayo" << std::endl;
 			}
 		}
 
 		for (std::map<std::string, std::tuple<AbstractModel::OBB, glm::mat4, glm::mat4>>::iterator it = collidersOBB.begin(); it != collidersOBB.end(); it++) {
-			if (intersectRayOBB(oriE, tarE, rayDirectionE, std::get<0>(it->second))) {
-				std::cout << "Colision " << it->first << " con el rayo" << std::endl;
+			if (intersectRayOBB(oriE, tarE, rayDirectionE, std::get<0>(it -> second))) {
+				std::cout << "Colision " << it->first << " con el rayo Ender" << std::endl;
 			}
-		}*/
+		}
 
 		// Lamps1 colliders
 		for (int i = 0; i < lamp1Position.size(); i++){
