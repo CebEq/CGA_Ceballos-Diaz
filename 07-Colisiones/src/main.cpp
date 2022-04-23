@@ -1494,9 +1494,10 @@ void applicationLoop() {
 
 		// Collider de Tails
 		AbstractModel::OBB tailsCollider;
-		glm::mat4 modelMatrixColliderTails = glm::mat4(modelMatrixTails);
+		glm::mat4 modelMatrixColliderTails;
 		if (renderTails)
 		{
+			modelMatrixColliderTails = glm::mat4(modelMatrixTails);
 			// Set the orientation of collider before doing the scale
 			tailsCollider.u = glm::quat_cast(modelMatrixTails);
 			modelMatrixColliderTails = glm::scale(modelMatrixColliderTails, glm::vec3(1.0, 1.0, 1.0));
@@ -1517,9 +1518,10 @@ void applicationLoop() {
 
 		//Collider Pelota
 		AbstractModel::SBB pelotaCollider;
-		glm::mat4 modelMatrixColliderPelota = glm::mat4(modelMatrixPelota);
+		glm::mat4 modelMatrixColliderPelota;
 		if (renderPelota)
 		{
+			modelMatrixColliderPelota = glm::mat4(modelMatrixPelota);
 			modelMatrixColliderPelota = glm::scale(modelMatrixColliderPelota, glm::vec3(1.0, 1.0, 1.0));
 			modelMatrixColliderPelota = glm::translate(modelMatrixColliderPelota, glm::vec3(modelPelota.getSbb().c.x, modelPelota.getSbb().c.y - 0.25, modelPelota.getSbb().c.z));
 			pelotaCollider.c = glm::vec3(modelMatrixColliderPelota[3]);
@@ -1538,9 +1540,10 @@ void applicationLoop() {
 
 		// Collider Bullet
 		AbstractModel::SBB bulletCollider;
-		glm::mat4 modelMatrixColliderBullet = glm::mat4(modelMatrixBulletMain);
+		glm::mat4 modelMatrixColliderBullet;
 		if (bulletIsActive)
 		{
+			modelMatrixColliderBullet = glm::mat4(modelMatrixBulletMain);
 			// Set the orientation of collider before doing the scale
 			//bulletCollider.u = glm::quat_cast(modelMatrixBullet);
 			modelMatrixColliderBullet = glm::scale(modelMatrixColliderBullet, glm::vec3(0.25, 0.25, 0.25));
