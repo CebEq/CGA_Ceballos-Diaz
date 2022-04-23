@@ -95,12 +95,14 @@ Model modelLampPost2;
 // Model animate instance
 // Mayow
 Model mayowModelAnimate;
-//Enderman
+// Enderman
 Model endermanModelAnimate;
-//Tails
+// Tails
 Model modelTailsFull;
-//Pelota
+// Pelota
 Model modelPelota;
+// Bullet
+Model modelBullet;
 
 // Terrain model instance
 Terrain terrain(-1, -1, 200, 8, "../Textures/heightmap.png");
@@ -138,6 +140,15 @@ glm::mat4 modelMatrixMayow = glm::mat4(1.0f);
 glm::mat4 modelMatrixEnderman = glm::mat4(1.0f);
 glm::mat4 modelMatrixTails = glm::mat4(1.0f);
 glm::mat4 modelMatrixPelota = glm::mat4(1.0f);
+glm::mat4 modelMatrixBullet = glm::mat4(1.0f);
+
+// Bullet states
+bool enableBulletFiring = true;
+bool bulletIsActive = false;
+bool renderTails = true;
+bool renderPelota = true;
+float bulletMovement = 0.0;
+float bulletMaxMovement = 6.0;
 
 int animationIndex = 1;
 float rotDartHead = 0.0, rotDartLeftArm = 0.0, rotDartLeftHand = 0.0, rotDartRightArm = 0.0, rotDartRightHand = 0.0, rotDartLeftLeg = 0.0, rotDartRightLeg = 0.0;
@@ -349,9 +360,13 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	modelTailsFull.loadModel("../models/Tails/Tails.obj");
 	modelTailsFull.setShader(&shaderMulLighting);
 
-	//Tails
+	//Pelota
 	modelPelota.loadModel("../models/Pelota/Pelota.fbx");
 	modelPelota.setShader(&shaderMulLighting);
+
+	//Bullet
+	modelBullet.loadModel("../models/Bullet/Bullet.obj");
+	modelBullet.setShader(&shaderMulLighting);
 
 	camera->setPosition(glm::vec3(0.0, 0.0, 10.0));
 	camera->setDistanceFromTarget(distanceFromTarget);
@@ -753,6 +768,11 @@ void destroy() {
 	modelLamp1.destroy();
 	modelLamp2.destroy();
 	modelLampPost2.destroy();
+	modelLampPost2.destroy();
+	modelLampPost2.destroy();
+	modelLampPost2.destroy();
+	modelLampPost2.destroy();
+	modelBullet.destroy();
 
 	// Custom objects animate
 	mayowModelAnimate.destroy();
@@ -935,18 +955,18 @@ bool processInput(bool continueApplication) {
 		modelMatrixMayow = glm::rotate(modelMatrixMayow, glm::radians(-1.0f), glm::vec3(0, 1, 0));
 		animationIndex = 0;
 	}if (modelSelected == 2 && glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS){
-		modelMatrixMayow = glm::translate(modelMatrixMayow, glm::vec3(0, 0, 0.02));
+		modelMatrixMayow = glm::translate(modelMatrixMayow, glm::vec3(0, 0, 0.05));
 		animationIndex = 0;
 	}else if (modelSelected == 2 && glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS){
-		modelMatrixMayow = glm::translate(modelMatrixMayow, glm::vec3(0, 0, -0.02));
+		modelMatrixMayow = glm::translate(modelMatrixMayow, glm::vec3(0, 0, -0.05));
 		animationIndex = 0;
 	}
 	if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-		modelMatrixEnderman = glm::translate(modelMatrixEnderman, glm::vec3(0.0, 0.0, 0.03));
+		modelMatrixEnderman = glm::translate(modelMatrixEnderman, glm::vec3(0.0, 0.0, 0.05));
 		endermanModelAnimate.setAnimationIndex(1);
 	}
 	else if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-		modelMatrixEnderman = glm::translate(modelMatrixEnderman, glm::vec3(0.0, 0.0, -0.03));
+		modelMatrixEnderman = glm::translate(modelMatrixEnderman, glm::vec3(0.0, 0.0, -0.05));
 		endermanModelAnimate.setAnimationIndex(1);
 	}
 	if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
@@ -957,6 +977,14 @@ bool processInput(bool continueApplication) {
 		modelMatrixEnderman = glm::rotate(modelMatrixEnderman, -0.03f, glm::vec3(0, 1, 0));
 		endermanModelAnimate.setAnimationIndex(1);
 	}
+
+	if (enableBulletFiring && glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
+		enableBulletFiring = false;
+		bulletIsActive = true;
+		std::cout << "Bullet fired" << std::endl;
+	}
+	else if (glfwGetKey(window, GLFW_KEY_P) == GLFW_RELEASE)
+		enableBulletFiring = true;
 
 	glfwPollEvents();
 	return continueApplication;
@@ -988,6 +1016,8 @@ void applicationLoop() {
 	modelMatrixTails = glm::translate(modelMatrixTails, glm::vec3(0, 0, 9.0));
 
 	modelMatrixPelota = glm::translate(modelMatrixPelota, glm::vec3(5, 2, -9.0));
+
+	modelMatrixBullet = glm::translate(modelMatrixBullet, glm::vec3(0.0, 1.7, 2.9));
 
 	// Variables to interpolation key frames
 	fileName = "../animaciones/animation_dart_joints.txt";
@@ -1022,6 +1052,11 @@ void applicationLoop() {
 			axis = glm::axis(glm::quat_cast(modelMatrixDart));
 			angleTarget = glm::angle(glm::quat_cast(modelMatrixDart));
 			target = modelMatrixDart[3];
+		}
+		else if (modelSelected == 3) {
+			axis = glm::axis(glm::quat_cast(modelMatrixEnderman));
+			angleTarget = glm::angle(glm::quat_cast(modelMatrixEnderman));
+			target = modelMatrixEnderman[3];
 		}
 		else{
 			axis = glm::axis(glm::quat_cast(modelMatrixMayow));
@@ -1199,14 +1234,22 @@ void applicationLoop() {
 		modelMatrixAircraft[3][1] = terrain.getHeightTerrain(modelMatrixAircraft[3][0], modelMatrixAircraft[3][2]) + 2.0;
 		modelAircraft.render(modelMatrixAircraft);
 
-		modelMatrixTails[3][1] = terrain.getHeightTerrain(modelMatrixTails[3][0], modelMatrixTails[3][2]);
-		modelTailsFull.setOrientation(glm::vec3(0.0, 180.0, 0.0));
-		modelTailsFull.render(modelMatrixTails);
+		// Render tails
+		if (renderTails)
+		{
+			modelMatrixTails[3][1] = terrain.getHeightTerrain(modelMatrixTails[3][0], modelMatrixTails[3][2]);
+			modelTailsFull.setOrientation(glm::vec3(0.0, 180.0, 0.0));
+			modelTailsFull.render(modelMatrixTails);
+		}
 
-		glm::mat4 modelMatrixPelotaBody = glm::mat4(modelMatrixPelota);
-		//modelMatrixPelotaBody[3][1] = terrain.getHeightTerrain(modelMatrixPelotaBody[3][0], modelMatrixPelotaBody[3][2]);
-		modelMatrixPelotaBody = glm::scale(modelMatrixPelotaBody, glm::vec3(0.05,0.05,0.05));
-		modelPelota.render(modelMatrixPelotaBody);
+		// Render pelota
+		if (renderPelota)
+		{
+			glm::mat4 modelMatrixPelotaBody = glm::mat4(modelMatrixPelota);
+			//modelMatrixPelotaBody[3][1] = terrain.getHeightTerrain(modelMatrixPelotaBody[3][0], modelMatrixPelotaBody[3][2]);
+			modelMatrixPelotaBody = glm::scale(modelMatrixPelotaBody, glm::vec3(0.05, 0.05, 0.05));
+			modelPelota.render(modelMatrixPelotaBody);
+		}
 
 		// Helicopter
 		glm::mat4 modelMatrixHeliChasis = glm::mat4(modelMatrixHeli);
@@ -1326,7 +1369,6 @@ void applicationLoop() {
 		endermanModelAnimate.render(modelMatrixEndermanBody);
 		endermanModelAnimate.setAnimationIndex(0);*/
 		
-
 		glm::vec3 ejeyS = glm::normalize(terrain.getNormalTerrain(modelMatrixEnderman[3][0], modelMatrixEnderman[3][2]));
 		glm::vec3 ejexS = glm::normalize(modelMatrixEnderman[0]);
 		glm::vec3 ejezS = glm::normalize(glm::cross(ejexS, ejeyS));
@@ -1340,29 +1382,38 @@ void applicationLoop() {
 		endermanModelAnimate.render(modelMatrixEndermanBody);
 		endermanModelAnimate.setAnimationIndex(0);
 
-		//Rayo de mayow
+		// Bullet
+		glm::mat4 modelMatrixBulletMain = glm::mat4(modelMatrixEnderman);
+		if (bulletIsActive)
+		{
+			modelMatrixBulletMain = glm::translate(modelMatrixBulletMain, glm::vec3(0, 1.7, 0.35 + bulletMovement));
+			modelMatrixBulletMain = glm::scale(modelMatrixBulletMain, glm::vec3(0.25, 0.25, 0.25));
+			modelBullet.render(modelMatrixBulletMain);
+		}
+
+		// Rayo de Mayow
 		glm::mat4 modelMatrixRay = glm::mat4(modelMatrixMayow);
 		modelMatrixRay = glm::translate(modelMatrixRay, glm::vec3(0, 1, 0));
 		glm::vec3 rayDirection = glm::normalize(glm::vec3(modelMatrixRay[2]));
 		glm::vec3 ori = glm::vec3(modelMatrixRay[3]);
-		glm::vec3 tar = ori + 1.0f * rayDirection;
-		glm::vec3 dmd = ori + 0.85f * rayDirection;
-		modelMatrixRay[3] = glm::vec4(dmd,1.0f);
+		glm::vec3 tar = ori + 5.0f * rayDirection;
+		glm::vec3 dmd = ori + 2.5f * rayDirection;
+		modelMatrixRay[3] = glm::vec4(dmd, 1.0f);
 		modelMatrixRay = glm::rotate(modelMatrixRay, glm::radians(90.0f), glm::vec3(1.0, 0, 0));
-		modelMatrixRay = glm::scale(modelMatrixRay, glm::vec3(1.0, 1.0, 1.0));
+		modelMatrixRay = glm::scale(modelMatrixRay, glm::vec3(1.0, 5.0, 1.0));
 		cylinder.render(modelMatrixRay);
 
-		//Rayo de ender
-		/*glm::mat4 modelMatrixRayE = glm::mat4(modelMatrixEnderman);
-		modelMatrixRayE = glm::translate(modelMatrixRayE, glm::vec3(0, 1, 0));
+		// Rayo de Ender
+		glm::mat4 modelMatrixRayE = glm::mat4(modelMatrixEnderman);
+		modelMatrixRayE = glm::translate(modelMatrixRayE, glm::vec3(0, 1.7, 0));
 		glm::vec3 rayDirectionE = glm::normalize(glm::vec3(modelMatrixRayE[2]));
 		glm::vec3 oriE = glm::vec3(modelMatrixRayE[3]);
-		glm::vec3 tarE = oriE + 1.0f * rayDirectionE;
-		glm::vec3 dmdE = oriE + 0.85f * rayDirectionE;
+		glm::vec3 tarE = oriE + 5.0f * rayDirectionE;
+		glm::vec3 dmdE = oriE + 2.5f * rayDirectionE;
 		modelMatrixRayE[3] = glm::vec4(dmdE, 1.0f);
 		modelMatrixRayE = glm::rotate(modelMatrixRayE, glm::radians(90.0f), glm::vec3(1.0, 0, 0));
-		modelMatrixRayE = glm::scale(modelMatrixRayE, glm::vec3(1.0, 1.0, 1.0));
-		cylinderE.render(modelMatrixRayE);*/
+		modelMatrixRayE = glm::scale(modelMatrixRayE, glm::vec3(1.0, 5.0, 1.0));
+		cylinderE.render(modelMatrixRayE);
 
 		/*******************************************
 		 * Skybox
@@ -1433,33 +1484,82 @@ void applicationLoop() {
 		AbstractModel::OBB enderCollider;
 		glm::mat4 modelMatrixColliderEnder = glm::mat4(modelMatrixEnderman);
 		modelMatrixColliderEnder = glm::rotate(modelMatrixColliderEnder, glm::radians(-90.0f), glm::vec3(1.0, 0, 0));
-		modelMatrixColliderEnder = glm::translate(modelMatrixColliderEnder, glm::vec3(0.0, 0.0, 1.325));
 		enderCollider.u = glm::quat_cast(modelMatrixColliderEnder);
-		modelMatrixColliderEnder = glm::scale(modelMatrixColliderEnder, glm::vec3(0.0021, 0.0021, 0.0021));
+		modelMatrixColliderEnder = glm::scale(modelMatrixColliderEnder, glm::vec3(0.21, 0.21, 0.21));
 		modelMatrixColliderEnder = glm::translate(modelMatrixColliderEnder, endermanModelAnimate.getObb().c);
 		enderCollider.c = glm::vec3(modelMatrixColliderEnder[3]);
-		enderCollider.e = endermanModelAnimate.getObb().e * glm::vec3(0.0021, 0.0021, 0.0021) * glm::vec3(100.0, 100.0, 100.0);
+		enderCollider.e = endermanModelAnimate.getObb().e * glm::vec3(0.21, 0.21, 0.21);
 		addOrUpdateColliders(collidersOBB, "ender", enderCollider, modelMatrixEnderman);
 
 		// Collider de Tails
-		glm::mat4 modelMatrixColliderTails = glm::mat4(modelMatrixTails);
 		AbstractModel::OBB tailsCollider;
-		// Set the orientation of collider before doing the scale
-		tailsCollider.u = glm::quat_cast(modelMatrixTails);
-		modelMatrixColliderTails = glm::scale(modelMatrixColliderTails, glm::vec3(1.0, 1.0, 1.0));
-		modelMatrixColliderTails = glm::translate(modelMatrixColliderTails, glm::vec3(modelTailsFull.getObb().c.x , modelTailsFull.getObb().c.y, modelTailsFull.getObb().c.z + 0.46));
-		tailsCollider.c = glm::vec3(modelMatrixColliderTails[3]);
-		tailsCollider.e = modelTailsFull.getObb().e * glm::vec3(1, 1, 0.5);
-		addOrUpdateColliders(collidersOBB, "tails", tailsCollider, modelMatrixColliderTails);
+		glm::mat4 modelMatrixColliderTails;
+		if (renderTails)
+		{
+			modelMatrixColliderTails = glm::mat4(modelMatrixTails);
+			// Set the orientation of collider before doing the scale
+			tailsCollider.u = glm::quat_cast(modelMatrixTails);
+			modelMatrixColliderTails = glm::scale(modelMatrixColliderTails, glm::vec3(1.0, 1.0, 1.0));
+			modelMatrixColliderTails = glm::translate(modelMatrixColliderTails, glm::vec3(modelTailsFull.getObb().c.x, modelTailsFull.getObb().c.y, modelTailsFull.getObb().c.z + 0.46));
+			tailsCollider.c = glm::vec3(modelMatrixColliderTails[3]);
+			tailsCollider.e = modelTailsFull.getObb().e * glm::vec3(1, 1, 0.5);
+			addOrUpdateColliders(collidersOBB, "tails", tailsCollider, modelMatrixTails);
+		}
+		else
+		{
+			modelMatrixColliderTails = glm::mat4(1.0f);
+			modelMatrixColliderTails = glm::scale(modelMatrixColliderTails, glm::vec3(1.0, 1.0, 1.0));
+			modelMatrixColliderTails = glm::translate(modelMatrixColliderTails, glm::vec3(modelTailsFull.getObb().c.x - 80, modelTailsFull.getObb().c.y - 80, modelTailsFull.getObb().c.z - 80));
+			tailsCollider.c = glm::vec3(modelMatrixColliderTails[3]);
+			tailsCollider.e = modelTailsFull.getObb().e * glm::vec3(1, 1, 0.5);
+			addOrUpdateColliders(collidersOBB, "tails", tailsCollider, modelMatrixTails);
+		}
 
 		//Collider Pelota
 		AbstractModel::SBB pelotaCollider;
-		glm::mat4 modelMatrixColliderPelota = glm::mat4(modelMatrixPelota);
-		modelMatrixColliderPelota = glm::scale(modelMatrixColliderPelota, glm::vec3(1.0, 1.0, 1.0));
-		modelMatrixColliderPelota = glm::translate(modelMatrixColliderPelota, glm::vec3(modelPelota.getSbb().c.x, modelPelota.getSbb().c.y - 0.25, modelPelota.getSbb().c.z));
-		pelotaCollider.c = glm::vec3(modelMatrixColliderPelota[3]);
-		pelotaCollider.ratio = modelPelota.getSbb().ratio * 0.03;
-		addOrUpdateColliders(collidersSBB, "pelota", pelotaCollider, modelMatrixPelota);
+		glm::mat4 modelMatrixColliderPelota;
+		if (renderPelota)
+		{
+			modelMatrixColliderPelota = glm::mat4(modelMatrixPelota);
+			modelMatrixColliderPelota = glm::scale(modelMatrixColliderPelota, glm::vec3(1.0, 1.0, 1.0));
+			modelMatrixColliderPelota = glm::translate(modelMatrixColliderPelota, glm::vec3(modelPelota.getSbb().c.x, modelPelota.getSbb().c.y - 0.25, modelPelota.getSbb().c.z));
+			pelotaCollider.c = glm::vec3(modelMatrixColliderPelota[3]);
+			pelotaCollider.ratio = modelPelota.getSbb().ratio * 0.03;
+			addOrUpdateColliders(collidersSBB, "pelota", pelotaCollider, modelMatrixPelota);
+		}
+		else
+		{
+			modelMatrixColliderPelota = glm::mat4(1.0f);
+			modelMatrixColliderPelota = glm::scale(modelMatrixColliderPelota, glm::vec3(1.0, 1.0, 1.0));
+			modelMatrixColliderPelota = glm::translate(modelMatrixColliderPelota, glm::vec3(modelPelota.getSbb().c.x - 100, modelPelota.getSbb().c.y - 100, modelPelota.getSbb().c.z - 100));
+			pelotaCollider.c = glm::vec3(modelMatrixColliderPelota[3]);
+			pelotaCollider.ratio = modelPelota.getSbb().ratio * 0.03;
+			addOrUpdateColliders(collidersSBB, "pelota", pelotaCollider, modelMatrixPelota);
+		}
+
+		// Collider Bullet
+		AbstractModel::SBB bulletCollider;
+		glm::mat4 modelMatrixColliderBullet;
+		if (bulletIsActive)
+		{
+			modelMatrixColliderBullet = glm::mat4(modelMatrixBulletMain);
+			// Set the orientation of collider before doing the scale
+			//bulletCollider.u = glm::quat_cast(modelMatrixBullet);
+			modelMatrixColliderBullet = glm::scale(modelMatrixColliderBullet, glm::vec3(0.25, 0.25, 0.25));
+			modelMatrixColliderBullet = glm::translate(modelMatrixColliderBullet, glm::vec3(modelBullet.getObb().c.x, modelBullet.getObb().c.y, modelBullet.getObb().c.z + 1.25));
+			bulletCollider.c = glm::vec3(modelMatrixColliderBullet[3]);
+			bulletCollider.ratio = modelBullet.getSbb().ratio * 0.25;
+			addOrUpdateColliders(collidersSBB, "bullet", bulletCollider, modelMatrixBullet);
+		}
+		else
+		{
+			modelMatrixColliderBullet = glm::mat4(1.0f);
+			modelMatrixColliderBullet = glm::scale(modelMatrixColliderBullet, glm::vec3(0.25, 0.25, 0.25));
+			modelMatrixColliderBullet = glm::translate(modelMatrixColliderBullet, glm::vec3(modelBullet.getObb().c.x - 50, modelBullet.getObb().c.y - 50, modelBullet.getObb().c.z - 50));
+			bulletCollider.c = glm::vec3(modelMatrixColliderBullet[3]);
+			bulletCollider.ratio = modelBullet.getSbb().ratio * 0.25;
+			addOrUpdateColliders(collidersSBB, "bullet", bulletCollider, modelMatrixBullet);
+		}
 
 		//****************************************************************************************
 		//*                                 Test Colisiones                                      *
@@ -1482,6 +1582,11 @@ void applicationLoop() {
 				if (it != jt && testSphereSphereIntersection(std::get<0>(it->second), std::get<0>(jt->second))) {
 					std::cout << "Colision " << it->first << " con " << jt->first << std::endl;
 					isColision = true;
+					if (it->first == "pelota" && jt->first == "bullet") {
+						bulletIsActive = false;
+						bulletMovement = 0.0;
+						renderPelota = false;
+					}
 				}
 			}
 			addOrUpdateCollisionDetection(collisionDetection, it->first, isColision);
@@ -1495,6 +1600,11 @@ void applicationLoop() {
 					std::cout << "Colision " << jt->first << " con " << it->first << std::endl;
 					addOrUpdateCollisionDetection(collisionDetection, jt -> first, true);
 					isColision = true;
+					if (it->first == "tails" || jt->first == "tails") {
+						bulletIsActive = false;
+						bulletMovement = 0.0;
+						renderTails = false;
+					}
 				}
 			}
 			addOrUpdateCollisionDetection(collisionDetection, it->first, isColision);
@@ -1527,33 +1637,48 @@ void applicationLoop() {
 			}
 		}
 
+		int movimientoAleatorio = -100 + rand() % 120;
 		//Ray vs Sphere
 		for (std::map<std::string, std::tuple<AbstractModel::SBB, glm::mat4, glm::mat4>>::iterator it = collidersSBB.begin(); it != collidersSBB.end(); it++) {
 			float tray;
 			if (raySphereIntersect(ori, tar, rayDirection, std::get<0>(it -> second), tray)) {
-				std::cout << "Colision " << it->first << " con el rayo" << std::endl;
+				std::cout << "Colision " << it->first << " con el rayo de Mayow" << std::endl;
+				if (it->first.compare("pelota") == 0) {
+					modelMatrixPelota = glm::translate(modelMatrixPelota, glm::vec3(movimientoAleatorio * .02, 0.0, movimientoAleatorio * .04));
+				}
 			}
 		}
 
 		//Ray vs Box
 		for (std::map<std::string, std::tuple<AbstractModel::OBB, glm::mat4, glm::mat4>>::iterator it = collidersOBB.begin(); it != collidersOBB.end(); it++) {
-			if (intersectRayOBB(ori, tar, rayDirection, std::get<0>(it->second))) {
-				std::cout << "Colision " << it->first << " con el rayo" << std::endl;
+			if (intersectRayOBB(ori, tar, rayDirection, std::get<0>(it -> second))) {
+				std::cout << "Colision " << it->first << " con el rayo de Mayow" << std::endl;
+				if (it->first.compare("tails") == 0) {
+					modelMatrixTails = glm::translate(modelMatrixTails, glm::vec3(movimientoAleatorio * .02, 0.0, movimientoAleatorio * .04));
+				}
 			}
 		}
 
-		/*for (std::map<std::string, std::tuple<AbstractModel::SBB, glm::mat4, glm::mat4>>::iterator it = collidersSBB.begin(); it != collidersSBB.end(); it++) {
+		//Ray vs Sphere Ender
+		for (std::map<std::string, std::tuple<AbstractModel::SBB, glm::mat4, glm::mat4>>::iterator it = collidersSBB.begin(); it != collidersSBB.end(); it++) {
 			float trayE;
-			if (raySphereIntersect(oriE, tarE, rayDirectionE, std::get<0>(it->second), trayE)) {
-				std::cout << "Colision " << it->first << " con el rayo" << std::endl;
+			if (raySphereIntersect(oriE, tarE, rayDirectionE, std::get<0>(it -> second), trayE)) {
+				std::cout << "Colision " << it->first << " con el rayo de Ender" << std::endl;
+				if (it->first.compare("pelota") == 0) {
+					modelMatrixPelota = glm::translate(modelMatrixPelota, glm::vec3(movimientoAleatorio * .02, 0.0, movimientoAleatorio * .04));
+				}
 			}
 		}
 
+		//Ray vs Box Ender
 		for (std::map<std::string, std::tuple<AbstractModel::OBB, glm::mat4, glm::mat4>>::iterator it = collidersOBB.begin(); it != collidersOBB.end(); it++) {
-			if (intersectRayOBB(oriE, tarE, rayDirectionE, std::get<0>(it->second))) {
-				std::cout << "Colision " << it->first << " con el rayo" << std::endl;
+			if (intersectRayOBB(oriE, tarE, rayDirectionE, std::get<0>(it -> second))) {
+				std::cout << "Colision " << it->first << " con el rayo de Ender" << std::endl;
+				if (it->first.compare("tails") == 0) {
+					modelMatrixTails = glm::translate(modelMatrixTails, glm::vec3(movimientoAleatorio * .02, 0.0, movimientoAleatorio * .04));
+				}
 			}
-		}*/
+		}
 
 		// Lamps1 colliders
 		for (int i = 0; i < lamp1Position.size(); i++){
@@ -1696,6 +1821,19 @@ void applicationLoop() {
 				stateDoor = 0;
 			}
 			break;
+		}
+
+		if (bulletIsActive)
+		{
+			if (bulletMovement < bulletMaxMovement)
+			{
+				bulletMovement += 0.15;
+			}
+			else
+			{
+				bulletMovement = 0;
+				bulletIsActive = false;
+			}
 		}
 
 		glfwSwapBuffers(window);
