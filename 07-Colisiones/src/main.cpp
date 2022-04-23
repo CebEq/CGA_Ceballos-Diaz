@@ -1391,7 +1391,7 @@ void applicationLoop() {
 			modelBullet.render(modelMatrixBulletMain);
 		}
 
-		//Rayo de Mayow
+		// Rayo de Mayow
 		glm::mat4 modelMatrixRay = glm::mat4(modelMatrixMayow);
 		modelMatrixRay = glm::translate(modelMatrixRay, glm::vec3(0, 1, 0));
 		glm::vec3 rayDirection = glm::normalize(glm::vec3(modelMatrixRay[2]));
@@ -1403,7 +1403,7 @@ void applicationLoop() {
 		modelMatrixRay = glm::scale(modelMatrixRay, glm::vec3(1.0, 5.0, 1.0));
 		cylinder.render(modelMatrixRay);
 
-		//Rayo de Ender
+		// Rayo de Ender
 		glm::mat4 modelMatrixRayE = glm::mat4(modelMatrixEnderman);
 		modelMatrixRayE = glm::translate(modelMatrixRayE, glm::vec3(0, 1.7, 0));
 		glm::vec3 rayDirectionE = glm::normalize(glm::vec3(modelMatrixRayE[2]));
