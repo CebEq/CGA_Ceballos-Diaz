@@ -148,7 +148,7 @@ bool bulletIsActive = false;
 bool renderTails = true;
 bool renderPelota = true;
 float bulletMovement = 0.0;
-float bulletMaxMovement = 5.0;
+float bulletMaxMovement = 6.0;
 
 int animationIndex = 1;
 float rotDartHead = 0.0, rotDartLeftArm = 0.0, rotDartLeftHand = 0.0, rotDartRightArm = 0.0, rotDartRightHand = 0.0, rotDartLeftLeg = 0.0, rotDartRightLeg = 0.0;
@@ -962,11 +962,11 @@ bool processInput(bool continueApplication) {
 		animationIndex = 0;
 	}
 	if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-		modelMatrixEnderman = glm::translate(modelMatrixEnderman, glm::vec3(0.0, 0.0, 0.03));
+		modelMatrixEnderman = glm::translate(modelMatrixEnderman, glm::vec3(0.0, 0.0, 0.05));
 		endermanModelAnimate.setAnimationIndex(1);
 	}
 	else if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-		modelMatrixEnderman = glm::translate(modelMatrixEnderman, glm::vec3(0.0, 0.0, -0.03));
+		modelMatrixEnderman = glm::translate(modelMatrixEnderman, glm::vec3(0.0, 0.0, -0.05));
 		endermanModelAnimate.setAnimationIndex(1);
 	}
 	if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
@@ -1017,7 +1017,7 @@ void applicationLoop() {
 
 	modelMatrixPelota = glm::translate(modelMatrixPelota, glm::vec3(5, 2, -9.0));
 
-	modelMatrixBullet = glm::translate(modelMatrixBullet, glm::vec3(0.0, 2.0, 2.9));
+	modelMatrixBullet = glm::translate(modelMatrixBullet, glm::vec3(0.0, 1.7, 2.9));
 
 	// Variables to interpolation key frames
 	fileName = "../animaciones/animation_dart_joints.txt";
@@ -1369,7 +1369,6 @@ void applicationLoop() {
 		endermanModelAnimate.render(modelMatrixEndermanBody);
 		endermanModelAnimate.setAnimationIndex(0);*/
 		
-
 		glm::vec3 ejeyS = glm::normalize(terrain.getNormalTerrain(modelMatrixEnderman[3][0], modelMatrixEnderman[3][2]));
 		glm::vec3 ejexS = glm::normalize(modelMatrixEnderman[0]);
 		glm::vec3 ejezS = glm::normalize(glm::cross(ejexS, ejeyS));
@@ -1385,32 +1384,32 @@ void applicationLoop() {
 
 		// Bullet
 		glm::mat4 modelMatrixBulletMain = glm::mat4(modelMatrixEnderman);
-		if (true)
+		if (bulletIsActive)
 		{
 			modelMatrixBulletMain = glm::translate(modelMatrixBulletMain, glm::vec3(0, 1.7, 0.35 + bulletMovement));
 			modelMatrixBulletMain = glm::scale(modelMatrixBulletMain, glm::vec3(0.25, 0.25, 0.25));
 			modelBullet.render(modelMatrixBulletMain);
 		}
 
-		//Rayo de mayow
+		//Rayo de Mayow
 		glm::mat4 modelMatrixRay = glm::mat4(modelMatrixMayow);
 		modelMatrixRay = glm::translate(modelMatrixRay, glm::vec3(0, 1, 0));
 		glm::vec3 rayDirection = glm::normalize(glm::vec3(modelMatrixRay[2]));
 		glm::vec3 ori = glm::vec3(modelMatrixRay[3]);
-		glm::vec3 tar = ori + 1.0f * rayDirection;
-		glm::vec3 dmd = ori + 0.85f * rayDirection;
+		glm::vec3 tar = ori + 5.0f * rayDirection;
+		glm::vec3 dmd = ori + 2.5f * rayDirection;
 		modelMatrixRay[3] = glm::vec4(dmd, 1.0f);
 		modelMatrixRay = glm::rotate(modelMatrixRay, glm::radians(90.0f), glm::vec3(1.0, 0, 0));
-		modelMatrixRay = glm::scale(modelMatrixRay, glm::vec3(1.0, 1.0, 1.0));
+		modelMatrixRay = glm::scale(modelMatrixRay, glm::vec3(1.0, 5.0, 1.0));
 		cylinder.render(modelMatrixRay);
 
-		//Rayo de ender
+		//Rayo de Ender
 		glm::mat4 modelMatrixRayE = glm::mat4(modelMatrixEnderman);
-		modelMatrixRayE = glm::translate(modelMatrixRayE, glm::vec3(0, 1.7, 1.75));
+		modelMatrixRayE = glm::translate(modelMatrixRayE, glm::vec3(0, 1.7, 0));
 		glm::vec3 rayDirectionE = glm::normalize(glm::vec3(modelMatrixRayE[2]));
 		glm::vec3 oriE = glm::vec3(modelMatrixRayE[3]);
-		glm::vec3 tarE = oriE + 1.0f * rayDirectionE;
-		glm::vec3 dmdE = oriE + 0.85f * rayDirectionE;
+		glm::vec3 tarE = oriE + 5.0f * rayDirectionE;
+		glm::vec3 dmdE = oriE + 2.5f * rayDirectionE;
 		modelMatrixRayE[3] = glm::vec4(dmdE, 1.0f);
 		modelMatrixRayE = glm::rotate(modelMatrixRayE, glm::radians(90.0f), glm::vec3(1.0, 0, 0));
 		modelMatrixRayE = glm::scale(modelMatrixRayE, glm::vec3(1.0, 5.0, 1.0));
@@ -1638,31 +1637,46 @@ void applicationLoop() {
 			}
 		}
 
+		int movimientoAleatorio = -100 + rand() % 120;
 		//Ray vs Sphere
 		for (std::map<std::string, std::tuple<AbstractModel::SBB, glm::mat4, glm::mat4>>::iterator it = collidersSBB.begin(); it != collidersSBB.end(); it++) {
 			float tray;
 			if (raySphereIntersect(ori, tar, rayDirection, std::get<0>(it -> second), tray)) {
-				std::cout << "Colision " << it->first << " con el rayo" << std::endl;
+				std::cout << "Colision " << it->first << " con el rayo de Mayow" << std::endl;
+				if (it->first.compare("pelota") == 0) {
+					modelMatrixPelota = glm::translate(modelMatrixPelota, glm::vec3(movimientoAleatorio * .02, 0.0, movimientoAleatorio * .04));
+				}
 			}
 		}
 
 		//Ray vs Box
 		for (std::map<std::string, std::tuple<AbstractModel::OBB, glm::mat4, glm::mat4>>::iterator it = collidersOBB.begin(); it != collidersOBB.end(); it++) {
 			if (intersectRayOBB(ori, tar, rayDirection, std::get<0>(it -> second))) {
-				std::cout << "Colision " << it->first << " con el rayo" << std::endl;
+				std::cout << "Colision " << it->first << " con el rayo de Mayow" << std::endl;
+				if (it->first.compare("tails") == 0) {
+					modelMatrixTails = glm::translate(modelMatrixTails, glm::vec3(movimientoAleatorio * .02, 0.0, movimientoAleatorio * .04));
+				}
 			}
 		}
 
+		//Ray vs Sphere Ender
 		for (std::map<std::string, std::tuple<AbstractModel::SBB, glm::mat4, glm::mat4>>::iterator it = collidersSBB.begin(); it != collidersSBB.end(); it++) {
 			float trayE;
 			if (raySphereIntersect(oriE, tarE, rayDirectionE, std::get<0>(it -> second), trayE)) {
-				std::cout << "Colision " << it->first << " con el rayo" << std::endl;
+				std::cout << "Colision " << it->first << " con el rayo de Ender" << std::endl;
+				if (it->first.compare("pelota") == 0) {
+					modelMatrixPelota = glm::translate(modelMatrixPelota, glm::vec3(movimientoAleatorio * .02, 0.0, movimientoAleatorio * .04));
+				}
 			}
 		}
 
+		//Ray vs Box Ender
 		for (std::map<std::string, std::tuple<AbstractModel::OBB, glm::mat4, glm::mat4>>::iterator it = collidersOBB.begin(); it != collidersOBB.end(); it++) {
 			if (intersectRayOBB(oriE, tarE, rayDirectionE, std::get<0>(it -> second))) {
-				std::cout << "Colision " << it->first << " con el rayo Ender" << std::endl;
+				std::cout << "Colision " << it->first << " con el rayo de Ender" << std::endl;
+				if (it->first.compare("tails") == 0) {
+					modelMatrixTails = glm::translate(modelMatrixTails, glm::vec3(movimientoAleatorio * .02, 0.0, movimientoAleatorio * .04));
+				}
 			}
 		}
 
@@ -1813,7 +1827,7 @@ void applicationLoop() {
 		{
 			if (bulletMovement < bulletMaxMovement)
 			{
-				bulletMovement += 0.05;
+				bulletMovement += 0.15;
 			}
 			else
 			{
